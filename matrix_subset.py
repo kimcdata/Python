@@ -9,113 +9,62 @@ Python functions for subsetting a matrix by a number of searchable criteria
 
 """
 
-from pandas import *
+import pandas as pd
+import sys, getopt, argparse
 
-file_name = 'MuTHER_cis_results_chr11.txt'
-file_name_out = 'outfile.txt'
-
-comp = 'gt'
-
-data = read_table(file_name, header = 0)
-
-print(data.columns.values)
-
-target = 'ZW10'
-
-mask = data['Gene'].str.contains(target)
-isnull = mask.isnull()
-
-data_nonnull = data.loc[not isnull.any(),]
-
-mask = data_nonnull['Gene'].str.contains(target)
-
-data_target = data_nonnull.loc[mask,]
-
-print(data_target)
+class Args:
+  pass
+	
+parser = argparse.ArgumentParser(description = 'Fetch column headings and search terms')
+parser.add_argument('-c', nargs = '+')
+parser.add_argument('-t', nargs = '+')
+parser.add_argument('-i')
+parser.add_argument('-o')
+parser.parse_args(namespace=Args)
 
 
+file_name = Args.i
+outfile_name = Args.o
+list_target_columns = Args.c
+list_target_values = Args.t
+
+tup_colvalue_pairs = zip(list_target_columns, list_target_values)
+
+print(file_name)
+print(outfile_name)
+print(list_target_columns)
+print(len(list_target_columns))
+print(list_target_values)
+
+data = pd.read_table(file_name, header = 0)
+print(data.shape[0])
+nrow = data.shape[0]
+
+mask_store = []
+
+for col, val in tup_colvalue_pairs:
+	print(col)
+	print(val)
+
+	mask = data[col].str.contains(val)
+	print(type(mask))
+	mask[mask.isnull()] = False
+	mask = mask.tolist()
+	print(mask[:100])
+	
+	mask_store.append(list(mask))
+	print(len(mask_store))
+
+rows_towrite = []
+	
+for i in range(nrow):
+	row_intersect = [l[i] for l in mask_store]
+	hits = len([x for x in row_intersect if x])
+	if(hits == len(list_target_columns)):
+		rows_towrite.append(i)
+		
+if(len(rows_towrite) > 0):
+	data_towrite = data.iloc[rows_towrite,:]
+	data_towrite.to_csv(path_or_buf = outfile_name, sep = '\t')
 
 
-# # # # # # try:
-  # # # # # # opts, args = getopt.getopt(sys.argv[1:], "-i:-o:-t:-c:")
-# # # # # # except getopt.GetoptError:
-  # # # # # # print("mat2sif.py -i <inputfile> -o <outputfile> -h <headings> -t <search terms>")
-  # # # # # # sys.exit("Command line syntax error")
-
-# # # # # # for opt, arg in opts:
-  # # # # # # if opt in ("-i"):
-    # # # # # # file_name = arg
-    # # # # # # print(file_name)
-  # # # # # # if opt in ("-o"):
-    # # # # # # file_name_out = arg
-  # # # # # # if opt in ("-t"):
-    # # # # # # terms = arg
-  # # # # # # if opt in ("-h"):
-    # # # # # # headings = arg
-
-# # # # # # # open input file
-# # # # # # cormat = open(file_name, 'r')
-# # # # # # # open output file
-# # # # # # outfile = open(file_name_out, 'w')
-
-# # # # # # # open hub file
-# # # # # # if hub_file_given:
-  # # # # # # hub_file = open(hub_filename, 'r')
-  # # # # # # hubs = []
-  # # # # # # for line in hub_file:
-    # # # # # # hubs.append(line.rstrip())
-
-# # # # # # # create list of genes from first line of input file
-# # # # # # colnames = cormat.readline().rstrip().split('\t')
-# # # # # # colnames.pop(0)
-
-# # # # # # seen = {}
-
-# # # # # # t0 = time.clock()
-
-# # # # # # for line in cormat:
-  # # # # # # currLine = line.rstrip().split('\t')
-  # # # # # # rowLab = currLine[0]
-  # # # # # # print("rowLab " + rowLab)
-  # # # # # # if hub_file_given:
-    # # # # # # if rowLab in hubs:
-      # # # # # # print("hit")
-      # # # # # # rowLabList = [currLine.pop(0)] * len(currLine)
-      # # # # # # if comp in "gt":
-        # # # # # # sig = [(i, j, k) for (i, j, k) in zip(rowLabList, colnames, currLine) if abs(float(k)) >= thresh]
-      # # # # # # elif comp in "lt":
-        # # # # # # sig = [(i, j, k) for (i, j, k) in zip(rowLabList, colnames, currLine) if abs(float(k)) <= thresh]
-      # # # # # # else:
-        # # # # # # sys.exit("gt/lt needed for -c")
-
-      # # # # # # for x in sig:
-        # # # # # # # print(x)
-        # # # # # # key = "_".join(sorted(x[0:2]))
-        # # # # # # # print(key)
-        # # # # # # seq = "\t".join(x)
-        # # # # # # if key not in seen:
-          # # # # # # outfile.write(seq + "\n")
-          # # # # # # seen[key] = 1
-  # # # # # # if not hub_file_given:
-    # # # # # # rowLabList = [currLine.pop(0)] * len(currLine)
-    # # # # # # if comp in "gt":
-      # # # # # # sig = [(i, j, k) for (i, j, k) in zip(rowLabList, colnames, currLine) if abs(float(k)) >= thresh]
-    # # # # # # elif comp in "lt":
-      # # # # # # sig = [(i, j, k) for (i, j, k) in zip(rowLabList, colnames, currLine) if abs(float(k)) <= thresh]
-    # # # # # # else:
-      # # # # # # sys.exit("gt/lt needed for -c")
-
-    # # # # # # for x in sig:
-      # # # # # # # print(x)
-      # # # # # # key = "_".join(sorted(x[0:2]))
-      # # # # # # # print(key)
-      # # # # # # seq = "\t".join(x)
-      # # # # # # if key not in seen:
-        # # # # # # outfile.write(seq + "\n")
-        # # # # # # seen[key] = 1
-# # # # # # outfile.close()
-# # # # # # cormat.close()
-
-# # # # # # t1 = time.clock()
-# # # # # # print("t0: " + str(t0) + "\n")
-# # # # # # print ("t1: " + str(t1) + "\n")
